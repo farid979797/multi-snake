@@ -2,9 +2,35 @@ import asyncio
 from aiohttp import web, WSMsgType
 
 import settings
+from game import Game
+from utils import get_client_address, validate_settings, validate_player_name, validate_player_id
+from messaging import json, Messaging
+from exceptions import ValidationError
+
+
+def _get_new_player_info(data):
+    try:
+        player_name = data[1]
+    except IndexError:
+        raise ValidationError('Missing player name.')
+    else:
+        player_name = validate_player_name(player_name)
+
+    try:
+        player_id = data[2]
+    except IndexError:
+        player_id = None
+    else:
+        if player_id:
+            player_id = validate_player_id(player_id)
+        else:
+            player_id = None
+
+    return player_name, player_id
 
 
 async def ws_handler(request):
+    client_address = get_client_address(request)
     game = request.app['game']
     player = None
     ws = web.WebSocketResponse()
@@ -12,7 +38,41 @@ async def ws_handler(request):
 
     async for msg in ws:
         if msg.type == WSMsgType.TEXT:
-           pass
+            try:
+                data = json.loads(msg.data)
+            except ValueError:
+                continue
+
+            if isinstance(data, int) and player:
+                player.keypress(data)
+            elif not isinstance(data, list) or not data:
+                continue
+            elif data[0] == Messaging.MSG_PING:
+                await ws.send_json([Messaging.MSG_PONG] + data[1:], dumps=json.dumps)
+            elif data[0] == Messaging.MSG_NEW_PLAYER:
+                if not player:
+                    try:
+                        player_name, player_id = _get_new_player_info(data)
+                    except ValidationError as exc:
+                        await ws.send_json([Messaging.MSG_ERROR, str(exc)])
+                        break
+                    else:
+                        player = await game.new_player(player_name, ws, player_id=player_id)
+            elif data[0] == Messaging.MSG_JOIN:
+                if not game.running:
+                    await game.reset_world()
+                    try:
+                        asyncio.ensure_future(game_loop(game))
+                    except asyncio.CancelledError:
+                        pass
+
+                await game.join(player)
+
+        elif msg.type == WSMsgType.CLOSE:
+            break
+
+    if player:
+        await game.player_disconnected(player)
 
     return ws
 
@@ -74,8 +134,10 @@ async def on_shutdown(app):
 
 
 def run(host=settings.SERVER_HOST, port=settings.SERVER_PORT):
+    validate_settings(settings)
 
     app = web.Application()
+    app['game'] = Game()
 
     app.router.add_route('GET', '/connect', ws_handler)
     app.router.add_static('/', settings.WEB_ROOT)
