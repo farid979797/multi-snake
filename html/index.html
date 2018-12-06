@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, maximum-scale=1, minimum-scale=0.25, initial-scale=1, user-scalable=0">
+  <title>MultiSnake</title>
+  <link rel="stylesheet" type="text/css" href="static/css/style.css"/>
+
+</head>
+<body>
+<h1 id="title">MultiSnake</h1>
+
+<div>
+  <div id="mainScreen">
+    <div id="connectForm">
+      <label for="playerName" class="white">Name:</label>
+      <input id="playerName" type="text" maxlength="15"/>
+      <button id="btnConnect">Connect</button>
+    </div>
+
+    <div id="description">
+
+      <div id="leaderboard_btn">
+        <button id="btnShowLeaderboard">Show Leaderboard</button>
+      </div>
+
+      <div id="rules">
+        <h3 class="white">Rules:</h3>
+
+        <ol>
+          <li class="white">Use arrows to control the snake.</li>
+          <li class="white">Eat digits to grow up (score += digit).</li>
+          <li class="white">Do not bite: stones (#), snakes, borders.</li>
+          <li class="white">Earn points by killing other snakes (score += 1000).</li>
+          <li class="white">Invite friends and have fun together!</li>
+        </ol>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="playScreen">
+
+    <div id="userButtons">
+      <button id="btnJoin">Join!</button>
+      <button id="btnDisconnect">Disconnect</button>
+    </div>
+
+    <div id="playField">
+      <div id="activePlayers">
+        <h3>Active players</h3>
+        <div id="activePlayersList"></div>
+      </div>
+      <div id="worldHolder">
+        <table id="world"></table>
+      </div>
+      <div id="topScores">
+        <h3>Top scores</h3>
+        <div id="topScoresList"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div id="leaderboard">
+
+
+</div>
+
+<div id="status">&nbsp;</div>
+
+
+</body>
+</html>
