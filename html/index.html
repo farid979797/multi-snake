@@ -5,8 +5,507 @@
   <meta name="viewport" content="width=device-width, maximum-scale=1, minimum-scale=0.25, initial-scale=1, user-scalable=0">
   <title>MultiSnake</title>
   <link rel="stylesheet" type="text/css" href="static/css/style.css"/>
-  <script>
-    $().ready(function () {
+  <style>
+    #leaderboard {
+    margin: auto;
+    width: 50%;
+	width: 400px;
+	height: auto;
+}
+
+#leaderboard .row {
+	position: relative;
+	display: block;
+	width: 100%;
+	height: 40px;
+	border-bottom: 1px solid #AFAFAF;
+}
+
+#leaderboard .name {
+	position: relative;
+	display: inline-block;
+	width: 75%;
+	line-height: 45px;
+}
+
+#leaderboard .score {
+	position: relative;
+	display: inline-block;
+	width: 25%;
+}
+
+
+  </style>
+  <script type="text/javascript" src="static/js/jquery-3.2.1.min.js"></script>
+  <script type="text/javascript">
+      // Tell the parent that we are up and running (useful when called from an iframe)
+      try { window.parent.postMessage('1', document.referrer); } catch(e) {}
+
+      var SECONDARY_WEBSOCKET_CONNECTION = false;
+      var wsURL;
+      var ws;
+      var ws2;
+      var ws3;
+      var gameSettings;
+      var playerName;
+      var playerId;
+      var frameId;
+      var speed;
+      var lagMax = 4.0;
+      var lagCount;
+      var lastFrame = -1;
+      var lastSync;
+      var jitter;
+      var latency;
+      var lastLatency;
+      var lastPing;
+      var pingPongTimer;
+
+      function init() {
+          lastSync = null;
+          lastLatency = 0;
+          lastPing = null;
+          pingPongTimer = null;
+          lagCount = 0;
+      }
+
+      function getParameterByName(name, url) {
+          if (!url) url = window.location.href;
+          name = name.replace(/[\[\]]/g, "\\$&");
+          var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+              results = regex.exec(url);
+          if (!results) return null;
+          if (!results[2]) return '';
+          return decodeURIComponent(results[2].replace(/\+/g, " "));
+      }
+
+      function sendMessage(msgArray) {
+          var msg = JSON.stringify(msgArray);
+          ws.send(msg);
+      }
+
+      function sendMessage2(msgArray) {
+          var msg = JSON.stringify(msgArray);
+          ws2.send(msg);
+      }
+
+      function pingPong() {
+          var currentTime;
+
+          if (ws && !lastPing) {
+              currentTime = new Date().getTime();
+              sendMessage(['ping', currentTime, lastLatency]);
+              lastPing = currentTime;
+          }
+      }
+
+      // noinspection JSUnusedLocalSymbols
+      function render(x, y, symbol, color) {
+          var cell_id = '#cell' + y + '_' + x;
+          if (symbol === ' ') {
+              symbol = '&nbsp;';
+          }
+          $(cell_id).html(symbol);
+          $(cell_id).attr('class', 'color' + color);
+      }
+
+      function renderAll(renderArray) {
+          for (var i = 0; i < renderArray.length; i++) {
+              // noinspection JSUnresolvedFunction
+              render.apply(null, renderArray[i]);
+          }
+      }
+
+      function openHandler() {
+          $('#status').html(
+              'connected to server | ' +
+              'speed: <span id="speed"></span><span id="speedMax"></span> | ' +
+              'frame: <span id="frameId"></span><span id="frameIdMax"></span> | ' +
+              'latency: <span id="latency">?</span> ms | ' +
+              'jitter: <span id="jitter">0</span>'
+          );
+          playerName = $('#playerName').val();
+          frameId = $('#frameId');
+          speed = $('#speed');
+          latency = $('#latency');
+          jitter = $('#jitter');
+
+          sendMessage(["new_player", playerName, null]);
+
+          $('#mainScreen').hide();
+          $('#playScreen').show();
+          $('#btnJoin').show();
+
+          $(document).bind('keydown', keyPress);
+
+          pingPongTimer = setInterval(pingPong, 1000)
+      }
+
+      function openHandler2() {  // Used by the secondary websocket connection
+          if (playerId) {
+              sendMessage2(["new_player", playerName, playerId]);
+          } else {
+              console.error('Cannot create secondary websocket connection without player ID');
+          }
+      }
+
+      function closeHandler() {
+          if (pingPongTimer) {
+              clearInterval(pingPongTimer);
+          }
+
+          $('#status').text("disconnected from server");
+      }
+
+      function adminMessageHandler(args) {
+          switch (args[0]) {
+              case('pong'):
+                  if (lastPing === args[1]) {
+                      lastLatency = new Date().getTime() - lastPing;
+                      latency.text(lastLatency);
+                      lastPing = null;
+                  }
+                  break;
+
+              case('handshake'):
+                  $('#username').text(args[1]);
+                  playerId = args[2];
+                  gameSettings = args[3];
+                  // noinspection JSUnresolvedVariable
+                  $('#servername').text(gameSettings.SERVER_NAME || '');
+
+                  // noinspection JSUnresolvedVariable
+                  if (gameSettings.GAME_SPEED_MAX) {
+                      // noinspection JSUnresolvedVariable
+                      $('#speedMax').text('/' + gameSettings.GAME_SPEED_MAX)
+                  }
+                  // noinspection JSUnresolvedVariable
+                  if (gameSettings.GAME_FRAMES_MAX) {
+                      // noinspection JSUnresolvedVariable
+                      $('#frameIdMax').text('/' + gameSettings.GAME_FRAMES_MAX)
+                  }
+                  break;
+
+              case('world'):
+                  initWorld(args[1]);
+                  break;
+
+              case('reset_world'):
+                  resetWorld();
+                  break;
+
+              case('error'):
+                  alert(args[1]);
+                  break;
+
+              case('p_joined'):
+                  var id = args[1];
+                  var name = args[2];
+                  var color = args[3];
+                  var score = args[4];
+
+                  addPlayer(id, color, name, score);
+
+                  if (id === playerId) {
+                      $('#btnJoin').hide();
+
+                      if (SECONDARY_WEBSOCKET_CONNECTION) {
+                          connect2();
+                      }
+                  }
+                  break;
+
+              case('p_gameover'):
+                  id = args[1];
+                  $('#player' + id).remove();
+                  if (id === playerId) {
+                      $('#btnJoin').show();
+                  }
+                  break;
+
+              case('p_score'):
+                  id = args[1];
+                  score = args[2];
+                  $('#player' + id + ' .score').text(score);
+                  break;
+
+              case('top_scores'):
+                  $('#topScoresList').empty();
+                  var players = args[1];
+
+                  for (var n = 0; n < players.length; n++) {
+                      name = players[n][0];
+                      score = players[n][1];
+                      color = players[n][2];
+                      addTopScore(color, name, score);
+                  }
+                  break;
+
+              default:
+                  console.error('Unknown message "%s"', args);
+                  break;
+          }
+      }
+
+      function messageHandlerFactory(connection, defaultHandler) {
+          return function (e) {
+              var data = JSON.parse(e.data);
+
+              if (!(data[0] instanceof Array)) {
+                  data = [data];
+              }
+
+              var i = data.length;
+              var renderArray = [];
+              // console.debug('Got message on %s connection: %s', connection, data);
+
+              while (i--) {
+                  var args = data[i];
+
+                  switch (args[0]) {
+                      case('render'):
+                          renderArray.push(args.slice(1));
+                          break;
+
+                      case('sync'):
+                          if (args[1] <= lastFrame) {
+                              // console.debug('Ignoring sync %s on %s connection', args[1], connection);
+                              return;  // We already rendered this frame
+                          }
+
+                          lastFrame = args[1];
+                          var now = new Date().getTime();
+                          var actualDelay;
+                          var expectedDelay;
+                          var jitterValue = 0;
+                          frameId.text(args[1]);
+                          speed.text(parseFloat(args[2]).toFixed(6));
+
+                          if (lastSync && args[1] > 1) {
+                              actualDelay = now - lastSync;
+                              expectedDelay = 1 / args[2] * 1000;
+                              jitterValue = Math.round(expectedDelay - actualDelay);
+                              if ((actualDelay * lagMax) < expectedDelay) {
+                                  console.warn('Detected positive lag on frame %s (%s)', args[1], jitterValue);
+                                  lagCount++;
+                              } else if ((actualDelay / lagMax) > expectedDelay) {
+                                  console.warn('Detected negative lag on frame %s (%s)', args[1], jitterValue);
+                                  lagCount++;
+                              }
+                          }
+
+                          jitter.text(jitterValue);
+                          lastSync = now;
+                          break;
+
+                      default:
+                          defaultHandler(args);
+                          break;
+                  }
+              }
+
+              if (renderArray.length) {
+                  renderAll(renderArray);
+              }
+          };
+      }
+
+      function initWorld(data) {
+          var rows = [];
+
+          for (var y = 0; y < data.length; y++) {
+              var row = '';
+
+              for (var x = 0; x < data[y].length; x++) {
+                  var symbol = data[y][x][0];
+                  var color = data[y][x][1];
+
+                  if (symbol === ' ') {
+                      symbol = '&nbsp;';
+                  }
+
+                  row += '<td id="cell' + y + '_' + x + '" class="color' + color + '">' + symbol + '</td>';
+              }
+
+              rows.push("<tr>" + row + "</tr>");
+          }
+          var tableContent = rows.join('\n');
+
+          $('#world').html(tableContent);
+      }
+
+      function resetWorld() {
+          lastFrame = 0;
+          frameId.text(lastFrame);
+          // noinspection JSJQueryEfficiency
+          $('#world td').html('&nbsp;');
+      }
+
+      function addPlayer(id, color, name, score) {
+          var color_class = 'color' + color;
+
+          $('#activePlayersList').append('<div id="player' + id + '">'
+              + '<div class="name ' + color_class + '">' + name + '</div>'
+              + '<div class="score ' + color_class + '">' + score + '</div></div>');
+      }
+
+      function addTopScore(color, name, score) {
+          var color_class = 'color' + color;
+
+          $('#topScoresList').append('<div>'
+              + '<div class="name ' + color_class + '">' + name + '</div>'
+              + '<div class="score ' + color_class + '">' + score + '</div></div>');
+      }
+
+      function keyHandler(event, code) {
+          if (ws && ws.readyState === WebSocket.OPEN) {
+              ws.send(code);
+              event.preventDefault();
+          } else {
+              $('#status').text("Connection is closed");
+          }
+      }
+
+      function keyPress(event) {
+          var code = event.code || event.keyCode || event.charCode;
+
+          switch (code) {
+              case('ArrowUp'):
+              case('KeyW'):
+              case(87):  // w
+              case(75):  // k
+                  code = 38;
+                  break;
+              case('ArrowLeft'):
+              case('KeyA'):
+              case(65):  // a
+              case(72):  // h
+                  code = 37;
+                  break;
+              case('ArrowRight'):
+              case('KeyD'):
+              case(68):  // d
+              case(76):  // l
+                  code = 39;
+                  break;
+              case('ArrowDown'):
+              case('KeyS'):
+              case(83):  // s
+              case(74):  // j
+                  code = 40;
+                  break;
+              case(37):
+              case(38):
+              case(39):
+              case(40):
+                  break;
+              case('Enter'):
+              case(13):  // Enter
+                  // noinspection JSJQueryEfficiency
+                  if ($('#btnJoin').is(':visible')) {
+                      $('#btnJoin').click();
+                  }
+                  return;
+              case('Escape'):
+              case(27):  // Esc
+                  // noinspection JSJQueryEfficiency
+                  if ($('#btnDisconnect').is(':visible')) {
+                      $('#btnDisconnect').click();
+                  }
+                  return;
+              default:
+                  return;
+          }
+
+          keyHandler(event, code);
+      }
+
+      function connect(event) {
+          event.preventDefault();
+          init();
+
+          var _playerName = $('#playerName').val().trim();
+
+          if (!_playerName.length) {
+              return;
+          }
+
+          $('#status').text("connecting...");
+          var url = location.pathname.substring(0, location.pathname.indexOf('/index.html')) + '/connect';
+          wsURL = ((location.protocol === 'https:') ? 'wss://' : 'ws://') + location.host + url;
+          window.alert(wsURL)
+          // Primary websocket connection
+          ws = new WebSocket(wsURL);
+          ws.onopen = openHandler;
+          ws.onmessage = messageHandlerFactory('primary websocket', adminMessageHandler);
+          ws.onclose = closeHandler;
+          ws.onerror = function (e) {
+              $('#status').text(e.toString());
+          };
+      }
+
+      function show_leaderboard(event) {
+          event.preventDefault();
+          <!--var url = location.pathname.substring(0, location.pathname.indexOf('/index.html')) + '/leaderboard';-->
+          wsURL = ((location.protocol === 'https:') ? 'wss://' : 'ws://') + '0.0.0.0:8112'
+          ws3 = new WebSocket(wsURL);
+          ws3.onopen = function() {
+              ws3.send('GET LEADERBOARD')
+          };
+          ws3.onmessage = function(event) {
+              window.alert(event.data);
+              $('#mainScreen').hide();
+              $('#leaderboard').append('<h3>LEADERBOARD</h3>');
+              $('#leaderboard').append(event.data);
+          };
+          ws3.onclose = function(event) {
+              if (ws3) {
+                ws3.close();
+              }
+          };
+          ws3.onerror = function (e) {
+              $('#status').text(e.toString());
+          };
+      }
+
+      function disconnect(event) {
+          event.preventDefault();
+
+          if (ws) {
+              ws.close();
+          }
+
+          disconnect2();
+
+          $('#playScreen').hide();
+          $('#mainScreen').show();
+          $('#activePlayersList').empty();
+          $(document).unbind('keypress', keyPress);
+          $('#playerName').focus();
+      }
+
+      function connect2() {
+          // Secondary websocket connection (only for sync and render events)
+          ws2 = new WebSocket(wsURL);
+          ws2.onopen = openHandler2;
+          ws2.onmessage = messageHandlerFactory('secondary websocket', $.noop);
+          ws2.onerror = function (e) {
+              $('#status').text(e.toString());
+          };
+      }
+
+      function disconnect2() {
+          if (ws2) {
+              ws2.close();
+          }
+      }
+
+      function join(event) {
+          event.preventDefault();
+          sendMessage(['join']);
+      }
+
+      $().ready(function () {
           var auto_connect = getParameterByName('connect');
 
           // noinspection JSJQueryEfficiency
