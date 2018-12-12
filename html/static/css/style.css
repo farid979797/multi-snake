@@ -1,0 +1,313 @@
+* {
+  font-family: DejaVu Sans Mono, Bitstream Vera Sans Mono, monospace !important;
+  background-color: #111111;
+  color: #DDDDDD;
+  font-size: 11pt;
+  text-align: center;
+  line-height: 1em;
+}
+
+
+footer {
+  margin-top: 2em;
+}
+
+footer p {
+  font-size: 10px;
+}
+
+h1 {
+  font-size: 2.5em;
+  margin-bottom: 0.2em;
+  margin-top: 0.2em;
+}
+
+h2 {
+  font-size: 1.5em;
+}
+
+h3 {
+  font-size: 1.2em;
+  margin-top: 0;
+}
+
+a {
+  color: #FF851B;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+input {
+  border: 1px solid #DDDDDD;
+  padding: 0.5em;
+  background: #111111;
+  color: #01FF70;
+  text-align: left;
+}
+
+input[type="text"]:disabled, input[type="text"].disabled {
+  background-color: #404040;
+  cursor: not-allowed;
+}
+
+button {
+  border: 0;
+  text-align: center;
+  background: #DDDDDD;
+  color: #000000;
+  font-size: 1em;
+  padding: 0.5em;
+  cursor: pointer;
+}
+
+ol {
+  text-align: center;
+  display: inline-block;
+}
+
+ol li {
+  margin-bottom: 1.1em;
+  text-align: left;
+}
+
+/* OLD colors */
+/*noinspection CssUnusedSymbol*/
+/*.color0 { color:white }*/
+/*noinspection CssUnusedSymbol*/
+/*.color1 { color:red }*/
+/*noinspection CssUnusedSymbol*/
+/*.color2 { color:yellow }*/
+/*noinspection CssUnusedSymbol*/
+/*.color3 { color:#01FF70 }*/
+/*noinspection CssUnusedSymbol*/
+/*.color4 { color:aqua }*/
+/*noinspection CssUnusedSymbol*/
+/*.color5 { color:#4444FF }*/
+/*noinspection CssUnusedSymbol*/
+/*.color6 { color:fuchsia }*/
+
+/*noinspection CssUnusedSymbol*/
+.color0 {
+  color: #FFFFFF;
+}
+
+/*noinspection CssUnusedSymbol*/
+.color1 {
+  color: #0074D9;
+}
+
+.color2 {
+  color: #FFDC00;
+}
+
+.color3 {
+  color: #01FF70;
+}
+
+.color4 {
+  color: #FF4136;
+}
+
+.color5 {
+  color: #7FDBFF;
+}
+
+/*noinspection CssUnusedSymbol*/
+.color6 {
+  color: #F012BE;
+}
+
+/*noinspection CssUnusedSymbol*/
+.color7 {
+  color: #3D9970;
+}
+
+/*noinspection CssUnusedSymbol*/
+.color8 {
+  color: #FF851B;
+}
+
+.color9 {
+  color: #FF4136;
+}
+
+
+/* NEW colors */
+/*noinspection CssUnusedSymbol*/
+.navy {
+  color: #001F3F;
+}
+
+/*noinspection CssUnusedSymbol*/
+.blue {
+  color: #0074D9;
+}
+
+/*noinspection CssUnusedSymbol*/
+.aqua {
+  color: #7FDBFF;
+}
+
+/*noinspection CssUnusedSymbol*/
+.teal {
+  color: #39CCCC;
+}
+
+/*noinspection CssUnusedSymbol*/
+.olive {
+  color: #3D9970;
+}
+
+/*noinspection CssUnusedSymbol*/
+.green {
+  color: #2ECC40;
+}
+
+/*noinspection CssUnusedSymbol*/
+.lime {
+  color: #01FF70;
+}
+
+/*noinspection CssUnusedSymbol*/
+.yellow {
+  color: #FFDC00;
+}
+
+/*noinspection CssUnusedSymbol*/
+.orange {
+  color: #FF851B;
+}
+
+.red {
+  color: #FF4136;
+}
+
+/*noinspection CssUnusedSymbol*/
+.fuchsia {
+  color: #F012BE;
+}
+
+/*noinspection CssUnusedSymbol*/
+.purple {
+  color: #B10DC9;
+}
+
+/*noinspection CssUnusedSymbol*/
+.maroon {
+  color: #85144B;
+}
+
+.white {
+  color: #FFFFFF;
+}
+
+/*noinspection CssUnusedSymbol*/
+.silver {
+  color: #DDDDDD;
+}
+
+/*noinspection CssUnusedSymbol*/
+.gray {
+  color: #AAAAAA;
+}
+
+/*noinspection CssUnusedSymbol*/
+.black {
+  color: #111111;
+}
+
+#rules {
+  margin-top: 5em;
+}
+
+#status {
+  position: fixed;
+  bottom: 1px;
+  left: 1px;
+  padding: 2px 6px;
+  font-size: 0.85em;
+  width: 100%;
+}
+
+#status > span {
+  display: inline-block;
+  min-width: 2em;
+}
+
+#userButtons {
+  margin-top: 1em;
+}
+
+#playScreen {
+  display: none;
+}
+
+#connectForm {
+  margin-top: 0;
+  margin-bottom: 3em;
+}
+
+#activePlayers, #topScores {
+  width: 13em;
+  color: #FFFFFF;
+  display: inline-block;
+  vertical-align: top;
+  margin-bottom: 1em;
+}
+
+/*noinspection CssUnusedSymbol,CssUnusedSymbol*/
+#activePlayers .name, #topScores .name {
+  width: 10em;
+  text-align: left;
+}
+
+/*noinspection CssUnusedSymbol,CssUnusedSymbol*/
+#activePlayers .score, #topScores .score {
+  width: 3em;
+  text-align: right;
+}
+
+#activePlayers div, #topScores div {
+  display: inline-block;
+}
+
+#topScores {
+  text-align: left;
+}
+
+#playField {
+  margin-top: 1em;
+}
+
+#worldHolder {
+  display: inline-block;
+  border: 2px solid silver;
+  padding: 0.3em;
+  line-height: 1em;
+  margin-bottom: 1em;
+}
+
+#world {
+  padding: 0;
+  border: 0;
+  margin: 0;
+  line-height: 1em;
+  table-layout: fixed;
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+#world td {
+  width: 1em;
+  height: 1em;
+  padding: 0;
+  margin: 0;
+  line-height: 1em;
+  font-size: 1em;
+  letter-spacing: 0;
+  font-kerning: none;
+  background-color: black;
+}
