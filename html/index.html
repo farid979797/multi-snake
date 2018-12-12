@@ -5,7 +5,29 @@
   <meta name="viewport" content="width=device-width, maximum-scale=1, minimum-scale=0.25, initial-scale=1, user-scalable=0">
   <title>MultiSnake</title>
   <link rel="stylesheet" type="text/css" href="static/css/style.css"/>
+  <script>
+    $().ready(function () {
+          var auto_connect = getParameterByName('connect');
 
+          // noinspection JSJQueryEfficiency
+          $('#btnConnect').click(connect);
+          $('#btnShowLeaderboard').click(show_leaderboard);
+          $('#btnDisconnect').click(disconnect);
+          $('#btnJoin').click(join);
+          // noinspection JSUnresolvedFunction,JSJQueryEfficiency
+          $('#playerName').focus().keyup(function (event) {
+              var code = event.code || event.keyCode || event.charCode;
+
+              if (code === 13 || code === 'Enter') {
+                  $('#btnConnect').click();
+              }
+          });
+          if (auto_connect) {
+              $('#playerName').val(auto_connect).attr('disabled','disabled');
+              $('#btnConnect').click();
+          }
+      });
+  </script>
 </head>
 <body>
 <h1 id="title">MultiSnake</h1>
